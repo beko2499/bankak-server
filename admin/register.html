@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب - SNOX Terminal</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Orbitron:wght@400;700;900&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --neon-cyan: #00ffff;
+            --neon-purple: #bf00ff;
+            --dark-bg: #0a0a0a;
+            --terminal-green: #00ff41;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--dark-bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Floating Code Background */
+        .code-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+            opacity: 0.15;
+        }
+
+        .code-line {
+            position: absolute;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: var(--neon-green);
+            white-space: nowrap;
+            animation: float-code 20s linear infinite;
+        }
+
+        @keyframes float-code {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100vw);
+            }
+        }
+
+        /* Scanlines */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0.1),
+                    rgba(0, 0, 0, 0.1) 1px,
+                    transparent 1px,
+                    transparent 2px);
+            opacity: 0.08;
+        }
+
+        /* Terminal Container */
+        .terminal {
+            background: rgba(0, 10, 0, 0.95);
+            border: 2px solid var(--neon-green);
+            width: 100%;
+            max-width: 500px;
+            box-shadow:
+                0 0 30px rgba(0, 255, 65, 0.3),
+                inset 0 0 50px rgba(0, 255, 65, 0.05);
+            position: relative;
+        }
+
+        /* Terminal Header */
+        .terminal-header {
+            background: linear-gradient(90deg, var(--neon-green), #00cc33);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .terminal-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #000;
+            font-size: 0.9em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .terminal-title::before {
+            content: '>';
+            font-weight: bold;
+        }
+
+        .terminal-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-btn {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: none;
+        }
+
+        .btn-close {
+            background: #ff5f56;
+        }
+
+        .btn-min {
+            background: #ffbd2e;
+        }
+
+        .btn-max {
+            background: #27ca40;
+        }
+
+        /* Terminal Body */
+        .terminal-body {
+            padding: 30px;
+        }
+
+        /* ASCII Art Logo */
+        .ascii-logo {
+            font-family: 'Fira Code', monospace;
+            color: var(--neon-green);
+            font-size: 10px;
+            line-height: 1.2;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px var(--neon-green);
+            white-space: pre;
+        }
+
+        .welcome-text {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .welcome-text h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-green);
+            font-size: 1.5em;
+            text-shadow: 0 0 20px var(--neon-green);
+            margin-bottom: 5px;
+        }
+
+        .welcome-text p {
+            color: var(--neon-cyan);
+            font-size: 0.9em;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--neon-green);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+
+        .form-label::before {
+            content: '$ ';
+            color: var(--neon-cyan);
+        }
+
+        .form-label span {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            color: #fff;
+            font-family: 'Fira Code', monospace;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #444;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--neon-green);
+            color: #000;
+            border: none;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            box-shadow: 0 0 30px var(--neon-green), 0 0 60px var(--neon-green);
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* Messages */
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .message.error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+        }
+
+        /* Account Info Display */
+        .account-info {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid var(--neon-green);
+            padding: 25px;
+            display: none;
+            margin-top: 20px;
+        }
+
+        .account-info h3 {
+            color: var(--neon-cyan);
+            text-align: center;
+            margin-bottom: 20px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .info-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+
+        .info-value.account-number {
+            color: var(--neon-cyan);
+            font-size: 1.2em;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .warning-note {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        /* Back Link */
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 25px;
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        /* Typing Animation */
+        .typing::after {
+            content: '█';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Loading Dots */
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0% {
+                content: '.';
+            }
+
+            33% {
+                content: '..';
+            }
+
+            66% {
+                content: '...';
+            }
+        }
+
+        /* Corner Decorations */
+        .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: var(--neon-green);
+            border-style: solid;
+        }
+
+        .corner-tl {
+            top: -2px;
+            left: -2px;
+            border-width: 3px 0 0 3px;
+        }
+
+        .corner-tr {
+            top: -2px;
+            right: -2px;
+            border-width: 3px 3px 0 0;
+        }
+
+        .corner-bl {
+            bottom: -2px;
+            left: -2px;
+            border-width: 0 0 3px 3px;
+        }
+
+        .corner-br {
+            bottom: -2px;
+            right: -2px;
+            border-width: 0 3px 3px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .terminal-body {
+                padding: 20px;
+            }
+
+            .ascii-logo {
+                font-size: 7px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="scanlines"></div>
+    <div class="code-bg" id="codeBg"></div>
+
+    <div class="terminal">
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+
+        <div class="terminal-header">
+            <div class="terminal-title">CREATE_ACCOUNT.exe</div>
+            <div class="terminal-buttons">
+                <span class="terminal-btn btn-close"></span>
+                <span class="terminal-btn btn-min"></span>
+                <span class="terminal-btn btn-max"></span>
+            </div>
+        </div>
+
+        <div class="terminal-body">
+            <div class="ascii-logo">
+                ███████╗███╗ ██╗ ██████╗ ██╗ ██╗
+                ██╔════╝████╗ ██║██╔═══██╗╚██╗██╔╝
+                ███████╗██╔██╗ ██║██║ ██║ ╚███╔╝
+                ╚════██║██║╚██╗██║██║ ██║ ██╔██╗
+                ███████║██║ ╚████║╚██████╔╝██╔╝ ██╗
+                ╚══════╝╚═╝ ╚═══╝ ╚═════╝ ╚═╝ ╚═╝
+            </div>
+
+            <div class="welcome-text">
+                <h1 class="typing">NEW IDENTITY</h1>
+                <p>[ INITIALIZING ACCOUNT CREATION ]</p>
+            </div>
+
+            <div class="message success" id="success"></div>
+            <div class="message error" id="error"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label class="form-label">enter_name</label>
+                    <input type="text" class="form-input" id="name" placeholder="أدخل اسمك الكامل..." required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">set_password</label>
+                    <input type="password" class="form-input" id="password" placeholder="كلمة مرور قوية..." required
+                        minlength="4">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">whatsapp <span>// optional</span></label>
+                    <input type="tel" class="form-input" id="whatsapp" placeholder="0912345678">
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 EXECUTE CREATION
+                </button>
+            </form>
+
+            <div class="account-info" id="accountInfo">
+                <h3>✅ ACCESS GRANTED</h3>
+                <div class="info-row">
+                    <span class="info-label">ACCOUNT_ID:</span>
+                    <span class="info-value account-number" id="accountNumber"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">USERNAME:</span>
+                    <span class="info-value" id="accountName"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">BALANCE:</span>
+                    <span class="info-value" id="accountBalance"></span>
+                </div>
+                <div class="warning-note">
+                    ⚠️ احفظ بيانات الدخول! ستحتاجها للوصول للتطبيق.
+                </div>
+            </div>
+
+            <a href="download.html" class="back-link">← العودة لصفحة التحميل</a>
+        </div>
+    </div>
+
+    <script>
+        // Floating Code Effect
+        const codeBg = document.getElementById('codeBg');
+        const codeSnippets = [
+            'const account = new BankAccount();',
+            'function transfer(amount) { }',
+            'if (balance >= amount) return true;',
+            'await db.query("SELECT * FROM users");',
+            'encryption.decrypt(userData);',
+            'socket.emit("transaction", data);',
+            'const hash = crypto.sha256(pass);',
+            'return jwt.sign(payload, secret);',
+        ];
+
+        for (let i = 0; i < 15; i++) {
+            const line = document.createElement('div');
+            line.className = 'code-line';
+            line.textContent = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+            line.style.top = Math.random() * 100 + '%';
+            line.style.animationDuration = (15 + Math.random() * 20) + 's';
+            line.style.animationDelay = Math.random() * 10 + 's';
+            codeBg.appendChild(line);
+        }
+
+        // Form Handling
+        const API_BASE = '/api';
+
+        document.getElementById('registerForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const password = document.getElementById('password').value;
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            if (!name || !password) {
+                errorDiv.textContent = '[ERROR] يرجى ملء جميع الحقول المطلوبة';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 4) {
+                errorDiv.textContent = '[ERROR] كلمة المرور يجب أن تكون 4 أحرف على الأقل';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-dots">⏳ PROCESSING</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, password, whatsapp })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('registerForm').style.display = 'none';
+                    document.getElementById('accountNumber').textContent = data.account_number;
+                    document.getElementById('accountName').textContent = data.name;
+                    document.getElementById('accountBalance').textContent = data.balance.toLocaleString() + ' SDG';
+                    document.getElementById('accountInfo').style.display = 'block';
+
+                    successDiv.textContent = '[SUCCESS] تم إنشاء الحساب بنجاح!';
+                    successDiv.style.display = 'block';
+                } else {
+                    errorDiv.textContent = '[ERROR] ' + (data.message || 'حدث خطأ أثناء إنشاء الحساب');
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = '[CONNECTION_ERROR] فشل الاتصال بالسيرفر';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 EXECUTE CREATION';
+            }
+        });
+    </script>
+
+</body>
+
+</html>
