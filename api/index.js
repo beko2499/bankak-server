@@ -35,6 +35,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(limiter); // Rate limiting على كل الطلبات
 
+// Serve static files (admin panel)
+const path = require('path');
+app.use('/admin', express.static(path.join(__dirname, '../admin')));
+app.use(express.static(path.join(__dirname, '../admin')));
+
 // JWT Secret - من متغير بيئة
 const JWT_SECRET = process.env.JWT_SECRET || 'snox_jwt_secret_2025_secure_key';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'snox_admin_2025';
