@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الشحن - SNOX</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --neon-cyan: #00d4ff;
+            --dark-bg: #0a0a0a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: var(--dark-bg);
+            min-height: 100vh;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(0, 20, 0, 0.95), rgba(0, 10, 0, 0.98));
+            z-index: -2;
+        }
+
+        .navbar {
+            background: rgba(0, 20, 0, 0.95);
+            border-bottom: 2px solid var(--neon-green);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-green);
+            font-size: 16px;
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .agent-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .agent-balance {
+            background: rgba(0, 255, 65, 0.15);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 8px 15px;
+            border-radius: 3px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+        }
+
+        .agent-name {
+            color: var(--neon-cyan);
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 8px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 0, 0, 0.4);
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .terminal-card {
+            background: rgba(0, 20, 0, 0.9);
+            border: 2px solid var(--neon-green);
+            border-radius: 5px;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+        }
+
+        .terminal-header {
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+            color: #000;
+            padding: 12px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .terminal-header::before {
+            content: '> ';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .terminal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--neon-green);
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group label::before {
+            content: '> ';
+            opacity: 0.6;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid var(--neon-green);
+            border-radius: 3px;
+            color: var(--neon-green);
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(0, 255, 65, 0.3);
+            font-size: 14px;
+        }
+
+        .account-info {
+            background: rgba(0, 255, 65, 0.08);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 15px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .account-info.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .account-info .name {
+            color: var(--neon-cyan);
+            font-size: 18px;
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 5px;
+        }
+
+        .account-info .balance {
+            color: #aaa;
+            font-size: 13px;
+        }
+
+        .account-info .balance span {
+            color: #ffd700;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+            color: #000;
+            border: none;
+            border-radius: 3px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            box-shadow: 0 0 40px rgba(0, 255, 65, 0.5);
+            transform: translateY(-3px);
+        }
+
+        .submit-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .message.error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .message.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .history-section {
+            margin-top: 25px;
+            border-top: 1px solid rgba(0, 255, 65, 0.2);
+            padding-top: 20px;
+        }
+
+        .history-title {
+            color: var(--neon-green);
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .history-title::before {
+            content: '>> ';
+            opacity: 0.6;
+        }
+
+        .history-item {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            padding: 12px 15px;
+            border-radius: 3px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item .account {
+            color: var(--neon-cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+        }
+
+        .history-item .time {
+            color: #555;
+            font-size: 11px;
+        }
+
+        .history-item .amount {
+            color: #ff6b6b;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .no-history {
+            color: #444;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.1) 2px, rgba(0, 0, 0, 0.1) 4px);
+        }
+
+        @media (max-width: 600px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .navbar h1 {
+                font-size: 14px;
+            }
+
+            .container {
+                margin: 20px auto;
+            }
+
+            .terminal-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="matrix-bg"></div>
+    <div class="scanlines"></div>
+
+    <nav class="navbar">
+        <h1>💰 SNOX RECHARGE SYSTEM</h1>
+        <div class="agent-info">
+            <span class="agent-balance">BALANCE: <span id="agentBalance">0</span> SDG</span>
+            <span class="agent-name">AGENT: <span id="agentName"></span></span>
+            <button class="logout-btn" onclick="logout()">EXIT</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="terminal-card">
+            <div class="terminal-header">RECHARGE.exe</div>
+            <div class="terminal-body">
+                <div class="message" id="message"></div>
+
+                <form id="rechargeForm">
+                    <div class="form-group">
+                        <label>ACCOUNT NUMBER</label>
+                        <input type="text" id="accountNumber" placeholder="Enter 7-digit account" pattern="[0-9]{7}"
+                            maxlength="7" required>
+                    </div>
+
+                    <div class="account-info" id="accountInfo">
+                        <div class="name" id="accountName"></div>
+                        <div class="balance">Current Balance: <span id="currentBalance"></span></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>RECHARGE AMOUNT (SDG)</label>
+                        <input type="number" id="amount" placeholder="Enter amount" min="1" required>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        ⚡ EXECUTE RECHARGE
+                    </button>
+                </form>
+
+                <div class="history-section">
+                    <h3 class="history-title">RECENT TRANSACTIONS</h3>
+                    <div id="historyList">
+                        <p class="no-history">[ LOADING... ]</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let agentToken = localStorage.getItem('agentToken');
+
+        // Check login
+        function checkLogin() {
+            if (!agentToken) {
+                window.location.href = '/admin/recharge-login.html';
+                return;
+            }
+
+            document.getElementById('agentName').textContent = localStorage.getItem('agentName') || 'UNKNOWN';
+            document.getElementById('agentBalance').textContent =
+                parseInt(localStorage.getItem('agentBalance') || 0).toLocaleString();
+
+            loadBalance();
+            loadHistory();
+        }
+        checkLogin();
+
+        function logout() {
+            localStorage.removeItem('agentToken');
+            localStorage.removeItem('agentName');
+            localStorage.removeItem('agentUsername');
+            localStorage.removeItem('agentBalance');
+            window.location.href = '/admin/recharge-login.html';
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'x-agent-token': agentToken
+            };
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: { ...headers, ...options.headers }
+            });
+
+            if (response.status === 401) {
+                logout();
+                return null;
+            }
+
+            return await response.json();
+        }
+
+        async function loadBalance() {
+            const data = await apiCall('/agent/balance');
+            if (data && data.success) {
+                document.getElementById('agentBalance').textContent = data.balance.toLocaleString();
+                localStorage.setItem('agentBalance', data.balance);
+            }
+        }
+
+        async function loadHistory() {
+            const data = await apiCall('/agent/transactions');
+            const historyDiv = document.getElementById('historyList');
+
+            if (!data || !data.success || data.transactions.length === 0) {
+                historyDiv.innerHTML = '<p class="no-history">[ NO TRANSACTIONS ]</p>';
+                return;
+            }
+
+            historyDiv.innerHTML = data.transactions.slice(0, 10).map(item => `
+                <div class="history-item">
+                    <div>
+                        <div class="account">${item.target_account || 'ADMIN CREDIT'}</div>
+                        <div class="time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div>
+                    </div>
+                    <div class="amount">${item.type === 'admin_credit' ? '+' : '-'}${item.amount.toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message show ' + type;
+            setTimeout(() => msg.classList.remove('show'), 5000);
+        }
+
+        // Lookup account
+        document.getElementById('accountNumber').addEventListener('input', async function () {
+            const accountNumber = this.value;
+            const infoDiv = document.getElementById('accountInfo');
+
+            if (accountNumber.length === 7) {
+                try {
+                    const response = await fetch(`${API_BASE}/account/${accountNumber}`);
+                    const data = await response.json();
+
+                    if (data.success && data.account) {
+                        document.getElementById('accountName').textContent =
+                            data.account.account_name || data.account.name || 'UNKNOWN';
+                        document.getElementById('currentBalance').textContent =
+                            (data.account.balance || 0).toLocaleString() + ' SDG';
+                        infoDiv.classList.add('show');
+                    } else {
+                        infoDiv.classList.remove('show');
+                    }
+                } catch (error) {
+                    infoDiv.classList.remove('show');
+                }
+            } else {
+                infoDiv.classList.remove('show');
+            }
+        });
+
+        // Submit recharge
+        document.getElementById('rechargeForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const accountNumber = document.getElementById('accountNumber').value;
+            const amount = parseInt(document.getElementById('amount').value);
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!accountNumber || accountNumber.length !== 7) {
+                showMessage('[ ERROR ] Account must be 7 digits', 'error');
+                return;
+            }
+
+            if (!amount || amount < 1) {
+                showMessage('[ ERROR ] Invalid amount', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ PROCESSING...';
+
+            try {
+                const data = await apiCall('/agent/recharge', {
+                    method: 'POST',
+                    body: JSON.stringify({ account_number: accountNumber, amount })
+                });
+
+                if (data && data.success) {
+                    showMessage(`[ SUCCESS ] +${amount.toLocaleString()} SDG sent!`, 'success');
+
+                    // Update balance display
+                    document.getElementById('agentBalance').textContent = data.newAgentBalance.toLocaleString();
+                    localStorage.setItem('agentBalance', data.newAgentBalance);
+
+                    document.getElementById('currentBalance').textContent =
+                        data.newUserBalance.toLocaleString() + ' SDG';
+                    document.getElementById('amount').value = '';
+
+                    loadHistory();
+                } else {
+                    showMessage('[ ERROR ] ' + (data?.message || 'Recharge failed'), 'error');
+                }
+            } catch (error) {
+                showMessage('[ ERROR ] Server connection failed', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '⚡ EXECUTE RECHARGE';
+            }
+        });
+    </script>
+</body>
+
+</html>
