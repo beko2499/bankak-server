@@ -245,6 +245,113 @@
             text-align: center;
             padding: 50px;
         }
+
+        /* Responsive Design for Mobile */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .navbar h1 {
+                font-size: 18px;
+            }
+
+            .navbar-links {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .navbar-links a {
+                margin-right: 0;
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-card .value {
+                font-size: 24px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+                padding: 15px;
+            }
+
+            .card-header h2 {
+                font-size: 16px;
+            }
+
+            .card-body {
+                padding: 15px;
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
+            }
+
+            th,
+            td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 12px;
+                margin-bottom: 5px;
+                display: inline-block;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .form-group input {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            /* Search input */
+            #searchAccount {
+                width: 100% !important;
+                margin-bottom: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar h1 {
+                font-size: 16px;
+            }
+
+            .stat-card .value {
+                font-size: 20px;
+            }
+
+            .navbar-links a {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 
