@@ -9,22 +9,22 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 
 // ============= SECURITY SETTINGS =============
-// Rate limiting - حماية من هجمات DDoS
+// Rate limiting - حماية من هجمات DDoS (تم تخفيفها)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 دقيقة
-    max: 100, // حد أقصى 100 طلب لكل IP
+    max: 50000, // حد أقصى 50000 طلب لكل IP
     message: { success: false, message: 'طلبات كثيرة جداً. حاول لاحقاً.' }
 });
 
 const strictLimiter = rateLimit({
     windowMs: 60 * 1000, // دقيقة واحدة
-    max: 5, // 5 محاولات فقط
+    max: 100, // 100 محاولات فقط
     message: { success: false, message: 'محاولات كثيرة. انتظر دقيقة.' }
 });
 
 // CORS - تحديد المصادر المسموحة
 const corsOptions = {
-    origin: ['https://bankak-server.vercel.app', 'http://localhost:3000'],
+    origin: ['https://bankak-server.vercel.app', 'https://bankak-server.onrender.com', 'http://localhost:3000'],
     methods: ['GET', 'POST'],
     credentials: true
 };
