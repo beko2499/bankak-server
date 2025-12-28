@@ -309,6 +309,42 @@ app.post('/api/fetch_account_details.php', async (req, res) => {
     }
 });
 
+// ============= GET ACCOUNT BY NUMBER (for Agent Search) =============
+app.get('/api/account/:account_number', async (req, res) => {
+    try {
+        const { account_number } = req.params;
+        console.log('Agent searching for account:', account_number);
+
+        if (!db) {
+            return res.json({ success: false, message: 'Database not available' });
+        }
+
+        const accountRef = db.collection('accounts').doc(account_number);
+        const doc = await accountRef.get();
+
+        if (doc.exists) {
+            const data = doc.data();
+            res.json({
+                success: true,
+                account: {
+                    account_number: account_number,
+                    account_name: data.account_name || data.name || 'مستخدم',
+                    name: data.account_name || data.name || 'مستخدم',
+                    balance: data.balance || 0,
+                    status: data.status || (data.banned ? 'banned' : 'active'),
+                    banned: data.banned || false,
+                    whatsapp: data.whatsapp || ''
+                }
+            });
+        } else {
+            res.json({ success: false, message: 'الحساب غير موجود' });
+        }
+    } catch (error) {
+        console.error('Error fetching account:', error);
+        res.json({ success: false, message: error.message });
+    }
+});
+
 // ============= SAVE ACCOUNT DETAILS =============
 app.post('/api/save_account_details.php', async (req, res) => {
     try {
