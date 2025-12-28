@@ -581,7 +581,7 @@ app.get('/api/admin/verify', verifyAdminToken, (req, res) => {
 app.get('/api/admin/accounts', verifyAdminToken, async (req, res) => {
     try {
         if (!db) return res.json({ accounts: [] });
-        const snapshot = await db.collection('accounts').limit(100).get();
+        const snapshot = await db.collection('accounts').orderBy('created_at', 'desc').get();
         const accounts = [];
         // إخفاء كلمات المرور من النتائج
         snapshot.forEach(doc => {
