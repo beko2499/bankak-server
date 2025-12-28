@@ -598,7 +598,7 @@ app.get('/api/admin/accounts', verifyAdminToken, async (req, res) => {
 app.get('/api/admin/transactions', verifyAdminToken, async (req, res) => {
     try {
         if (!db) return res.json({ transactions: [] });
-        const snapshot = await db.collection('transactions').limit(100).get();
+        const snapshot = await db.collection('transactions').orderBy('timestamp', 'desc').get();
         const transactions = [];
         snapshot.forEach(doc => transactions.push({ id: doc.id, ...doc.data() }));
         res.json({ transactions });

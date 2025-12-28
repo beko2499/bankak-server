@@ -444,18 +444,21 @@
             tbody.innerHTML = '';
 
             transactions.forEach((tx, index) => {
-                const date = tx.date || tx.created_at;
+                const date = tx.timestamp || tx.date || tx.created_at;
                 const formattedDate = date ? formatDate(date) : '-';
                 const type = tx.type || 'unknown';
                 const typeLabel = getTypeLabel(type);
                 const typeBadge = getTypeBadge(type);
 
+                const fromAcc = tx.from_account || tx.sender || tx.source_account || '-';
+                const toAcc = tx.to_account || tx.receiver || tx.target_account || '-';
+
                 tbody.innerHTML += `
                     <tr>
                         <td>${index + 1}</td>
                         <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
-                        <td>${tx.from_account || tx.sender || '-'}</td>
-                        <td>${tx.to_account || tx.receiver || '-'}</td>
+                        <td>${fromAcc}</td>
+                        <td>${toAcc}</td>
                         <td class="amount">${(tx.amount || 0).toLocaleString()} جنيه</td>
                         <td>${formattedDate}</td>
                         <td>
@@ -507,7 +510,7 @@
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">من حساب</span>
-                    <span class="detail-value">${tx.from_account || tx.sender || '-'}</span>
+                    <span class="detail-value">${tx.from_account || tx.sender || tx.source_account || '-'}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">اسم المرسل</span>
@@ -515,7 +518,7 @@
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">إلى حساب</span>
-                    <span class="detail-value">${tx.to_account || tx.receiver || '-'}</span>
+                    <span class="detail-value">${tx.to_account || tx.receiver || tx.target_account || '-'}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">اسم المستلم</span>
@@ -531,7 +534,7 @@
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">التاريخ</span>
-                    <span class="detail-value">${tx.date || tx.created_at ? formatDate(tx.date || tx.created_at) : '-'}</span>
+                    <span class="detail-value">${formatDate(tx.timestamp || tx.date || tx.created_at)}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">ملاحظات</span>
