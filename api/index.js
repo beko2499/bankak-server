@@ -111,6 +111,26 @@ function verifyAdminToken(req, res, next) {
     }
 }
 
+// ============= AGENT AUTH MIDDLEWARE =============
+function verifyAgentToken(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1] || req.headers['x-agent-token'];
+
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'غير مصرح - يرجى تسجيل الدخول' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.role !== 'agent') {
+            return res.status(403).json({ success: false, message: 'غير مصرح بالوصول' });
+        }
+        req.agent = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ success: false, message: 'جلسة منتهية - أعد تسجيل الدخول' });
+    }
+}
+
 // Helper: Hash password
 async function hashPassword(password) {
     return await bcrypt.hash(password, 10);
@@ -1073,6 +1093,175 @@ app.get('/api/agent/transactions', verifyAgentToken, async (req, res) => {
 
         const snapshot = await db.collection('agent_transactions')
             .where('agent_id', '==', req.agent.username)
+            .orderBy('timestamp', 'desc')
+            .limit(50)
+            .get();
+
+        const transactions = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            transactions.push({
+                id: doc.id,
+                type: data.type,
+                amount: data.amount,
+                target_account: data.target_account,
+                balance_after: data.balance_after,
+                timestamp: data.timestamp?.toDate?.()?.toISOString() || null
+            });
+        });
+
+        res.json({ success: true, transactions });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// ============= AGENT ENDPOINTS =============
+
+// Agent: Login
+app.post('/api/agent/login', strictLimiter, async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!db) {
+            return res.json({ success: false, message: 'Database error' });
+        }
+
+        const agentRef = db.collection('agents').doc(username);
+        const doc = await agentRef.get();
+
+        if (!doc.exists) {
+            return res.json({ success: false, message: 'اسم المستخدم غير موجود' });
+        }
+
+        const agentData = doc.data();
+
+        // Check password
+        const isValidPassword = await verifyPassword(password, agentData.password_hash);
+        if (!isValidPassword && password !== agentData.password) {
+            return res.json({ success: false, message: 'كلمة المرور غير صحيحة' });
+        }
+
+        // Check if agent is active
+        if (agentData.status === 'inactive') {
+            return res.json({ success: false, message: 'الحساب معطل' });
+        }
+
+        // Generate token
+        const token = jwt.sign(
+            { username: username, role: 'agent', name: agentData.name },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            success: true,
+            message: 'تم تسجيل الدخول بنجاح',
+            token: token,
+            agent: {
+                username: username,
+                name: agentData.name,
+                balance: agentData.balance || 0
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// Agent: Get Balance
+app.get('/api/agent/balance', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+
+        const agentRef = db.collection('agents').doc(req.agent.username);
+        const doc = await agentRef.get();
+
+        if (!doc.exists) {
+            return res.json({ success: false, message: 'الوكيل غير موجود' });
+        }
+
+        res.json({
+            success: true,
+            balance: doc.data().balance || 0
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// Agent: Recharge User Account
+app.post('/api/agent/recharge', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+
+        const { account_number, amount } = req.body;
+        const agentUsername = req.agent.username;
+
+        if (!account_number || !amount || amount <= 0) {
+            return res.json({ success: false, message: 'بيانات غير صحيحة' });
+        }
+
+        // Get agent balance
+        const agentRef = db.collection('agents').doc(agentUsername);
+        const agentDoc = await agentRef.get();
+
+        if (!agentDoc.exists) {
+            return res.json({ success: false, message: 'الوكيل غير موجود' });
+        }
+
+        const agentBalance = agentDoc.data().balance || 0;
+
+        if (agentBalance < amount) {
+            return res.json({ success: false, message: 'رصيدك غير كافي' });
+        }
+
+        // Get user account
+        const accountRef = db.collection('accounts').doc(account_number);
+        const accountDoc = await accountRef.get();
+
+        if (!accountDoc.exists) {
+            return res.json({ success: false, message: 'الحساب غير موجود' });
+        }
+
+        const currentBalance = accountDoc.data().balance || 0;
+        const newBalance = currentBalance + parseInt(amount);
+
+        // Update user balance
+        await accountRef.update({ balance: newBalance });
+
+        // Deduct from agent balance
+        await agentRef.update({ balance: agentBalance - parseInt(amount) });
+
+        // Log transaction
+        await db.collection('transactions').add({
+            type: 'agent_recharge',
+            source_account: 'AGENT:' + agentUsername,
+            target_account: account_number,
+            amount: parseInt(amount),
+            balance_after: newBalance,
+            agent_id: agentUsername,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({
+            success: true,
+            message: 'تم شحن الحساب بنجاح',
+            new_balance: newBalance
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// Agent: Get Transactions
+app.get('/api/agent/transactions', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: true, transactions: [] });
+
+        const agentUsername = req.agent.username;
+        const snapshot = await db.collection('transactions')
+            .where('agent_id', '==', agentUsername)
             .orderBy('timestamp', 'desc')
             .limit(50)
             .get();
