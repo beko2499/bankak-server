@@ -6,6 +6,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 
+// Last updated: 2025-12-28 20:08 - Force Render rebuild
+
 const app = express();
 
 // ============= SECURITY SETTINGS =============
@@ -1056,10 +1058,6 @@ app.get('/api/agent/transactions', verifyAgentToken, async (req, res) => {
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
-    res.json({ success: true, transactions });
-} catch (error) {
-    res.json({ success: false, message: error.message });
-}
 });
 
 // Agent: Block/Unblock user account
