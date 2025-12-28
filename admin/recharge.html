@@ -10,6 +10,7 @@
         :root {
             --neon-green: #00ff41;
             --neon-cyan: #00d4ff;
+            --neon-red: #ff3333;
             --dark-bg: #0a0a0a;
         }
 
@@ -90,7 +91,7 @@
         }
 
         .container {
-            max-width: 550px;
+            max-width: 600px;
             margin: 30px auto;
             padding: 0 20px;
         }
@@ -134,26 +135,15 @@
             padding: 25px;
         }
 
-        .form-group {
+        /* Search Section */
+        .search-box {
+            display: flex;
+            gap: 10px;
             margin-bottom: 20px;
         }
 
-        .form-group label {
-            display: block;
-            color: var(--neon-green);
-            font-size: 12px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .form-group label::before {
-            content: '> ';
-            opacity: 0.6;
-        }
-
-        .form-group input {
-            width: 100%;
+        .search-input {
+            flex: 1;
             padding: 15px;
             background: rgba(0, 255, 65, 0.05);
             border: 1px solid var(--neon-green);
@@ -165,161 +155,193 @@
             letter-spacing: 2px;
         }
 
-        .form-group input:focus {
+        .search-input:focus {
             outline: none;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
         }
 
-        .form-group input::placeholder {
-            color: rgba(0, 255, 65, 0.3);
+        .search-btn {
+            padding: 0 25px;
+            background: var(--neon-green);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        /* Result Item */
+        .result-item {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid var(--neon-green);
+            padding: 15px;
+            margin-top: 15px;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s;
+        }
+
+        .result-item:hover {
+            background: rgba(0, 255, 65, 0.2);
+            transform: translateX(-5px);
+        }
+
+        .result-item.show {
+            display: block;
+        }
+
+        .result-item h3 {
+            color: var(--neon-cyan);
+            margin-bottom: 5px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .result-item p {
+            color: #aaa;
             font-size: 14px;
         }
 
-        .account-info {
-            background: rgba(0, 255, 65, 0.08);
-            border: 1px solid rgba(0, 255, 65, 0.3);
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: #0a0a0a;
+            border: 2px solid var(--neon-cyan);
+            padding: 2px;
+            /* For double border effect inside */
+            width: 90%;
+            max-width: 450px;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .modal-inner {
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 25px;
+            background:
+                linear-gradient(45deg, transparent 5%, var(--neon-cyan) 5%, var(--neon-cyan) 10%, transparent 10%) 0 0 / 20px 20px;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--neon-cyan);
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            color: var(--neon-cyan);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+
+        .detail-label {
+            color: #888;
+        }
+
+        .detail-value {
+            color: #fff;
+            font-weight: bold;
+            font-family: 'Courier New';
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
             padding: 15px;
-            border-radius: 3px;
-            margin-bottom: 20px;
+            border: none;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .btn-charge {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+        }
+
+        .btn-block {
+            background: transparent;
+            border: 2px solid var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .btn-block:hover {
+            background: var(--neon-red);
+            color: #000;
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4);
+        }
+
+        /* Recharge Input in Modal */
+        .recharge-input-group {
+            margin-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
             display: none;
         }
 
-        .account-info.show {
-            display: block;
-            animation: fadeIn 0.3s;
+        .recharge-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-green);
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 16px;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(-10px);
+                transform: scale(0.9);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: scale(1);
             }
-        }
-
-        .account-info .name {
-            color: var(--neon-cyan);
-            font-size: 18px;
-            font-family: 'Orbitron', sans-serif;
-            margin-bottom: 5px;
-        }
-
-        .account-info .balance {
-            color: #aaa;
-            font-size: 13px;
-        }
-
-        .account-info .balance span {
-            color: #ffd700;
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
-            color: #000;
-            border: none;
-            border-radius: 3px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .submit-btn:hover {
-            box-shadow: 0 0 40px rgba(0, 255, 65, 0.5);
-            transform: translateY(-3px);
-        }
-
-        .submit-btn:disabled {
-            background: #333;
-            color: #666;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 3px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .message.success {
-            background: rgba(0, 255, 65, 0.1);
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-        }
-
-        .message.error {
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid #ff4444;
-            color: #ff4444;
-        }
-
-        .message.show {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-
-        .history-section {
-            margin-top: 25px;
-            border-top: 1px solid rgba(0, 255, 65, 0.2);
-            padding-top: 20px;
-        }
-
-        .history-title {
-            color: var(--neon-green);
-            font-size: 14px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .history-title::before {
-            content: '>> ';
-            opacity: 0.6;
-        }
-
-        .history-item {
-            background: rgba(0, 255, 65, 0.05);
-            border: 1px solid rgba(0, 255, 65, 0.2);
-            padding: 12px 15px;
-            border-radius: 3px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .history-item .account {
-            color: var(--neon-cyan);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
-        }
-
-        .history-item .time {
-            color: #555;
-            font-size: 11px;
-        }
-
-        .history-item .amount {
-            color: #ff6b6b;
-            font-weight: bold;
-            font-size: 16px;
-        }
-
-        .no-history {
-            color: #444;
-            text-align: center;
-            padding: 20px;
         }
 
         .scanlines {
@@ -332,26 +354,6 @@
             z-index: 1000;
             background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.1) 2px, rgba(0, 0, 0, 0.1) 4px);
         }
-
-        @media (max-width: 600px) {
-            .navbar {
-                flex-direction: column;
-                gap: 15px;
-                padding: 15px;
-            }
-
-            .navbar h1 {
-                font-size: 14px;
-            }
-
-            .container {
-                margin: 20px auto;
-            }
-
-            .terminal-body {
-                padding: 20px;
-            }
-        }
     </style>
 </head>
 
@@ -360,7 +362,7 @@
     <div class="scanlines"></div>
 
     <nav class="navbar">
-        <h1>💰 SNOX RECHARGE SYSTEM</h1>
+        <h1>💰 SNOX AGENT SYSTEM</h1>
         <div class="agent-info">
             <span class="agent-balance">BALANCE: <span id="agentBalance">0</span> SDG</span>
             <span class="agent-name">AGENT: <span id="agentName"></span></span>
@@ -370,37 +372,65 @@
 
     <div class="container">
         <div class="terminal-card">
-            <div class="terminal-header">RECHARGE.exe</div>
+            <div class="terminal-header">SEARCH_USER.exe</div>
             <div class="terminal-body">
-                <div class="message" id="message"></div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Enter Account Number"
+                        maxlength="7">
+                    <button class="search-btn" onclick="searchUser()">🔍</button>
+                </div>
 
-                <form id="rechargeForm">
-                    <div class="form-group">
-                        <label>ACCOUNT NUMBER</label>
-                        <input type="text" id="accountNumber" placeholder="Enter 7-digit account" pattern="[0-9]{7}"
-                            maxlength="7" required>
-                    </div>
+                <div id="searchResult" class="result-item" onclick="openUserModal()">
+                    <h3 id="resName">Unknown</h3>
+                    <p>Account: <span id="resAccount"></span> | Balance: <span id="resBalance"></span> SDG</p>
+                    <p style="color:#aaa;font-size:12px;margin-top:5px;">[ CLICK TO MANAGE ACCOUNT ]</p>
+                </div>
 
-                    <div class="account-info" id="accountInfo">
-                        <div class="name" id="accountName"></div>
-                        <div class="balance">Current Balance: <span id="currentBalance"></span></div>
-                    </div>
+                <div style="margin-top:30px; border-top:1px solid #333; padding-top:20px;">
+                    <h3 style="color:var(--neon-green);font-size:14px;margin-bottom:15px;">RECENT ACTIVITY</h3>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="form-group">
-                        <label>RECHARGE AMOUNT (SDG)</label>
-                        <input type="number" id="amount" placeholder="Enter amount" min="1" required>
-                    </div>
+    <!-- User Management Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <div class="modal-inner">
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <div class="modal-header">
+                    <h2>USER DETAILS</h2>
+                </div>
 
-                    <button type="submit" class="submit-btn" id="submitBtn">
-                        ⚡ EXECUTE RECHARGE
-                    </button>
-                </form>
+                <div class="detail-row">
+                    <span class="detail-label">NAME:</span>
+                    <span class="detail-value" id="modalName"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">ACCOUNT:</span>
+                    <span class="detail-value" id="modalAccount"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">BALANCE:</span>
+                    <span class="detail-value"><span id="modalBalance"></span> SDG</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">STATUS:</span>
+                    <span class="detail-value" id="modalStatus"></span>
+                </div>
 
-                <div class="history-section">
-                    <h3 class="history-title">RECENT TRANSACTIONS</h3>
-                    <div id="historyList">
-                        <p class="no-history">[ LOADING... ]</p>
-                    </div>
+                <!-- Recharge Form (Hidden by default) -->
+                <div class="recharge-input-group" id="rechargeGroup">
+                    <label style="color:var(--neon-green);display:block;margin-bottom:5px;">ENTER AMOUNT:</label>
+                    <input type="number" id="chargeAmount" class="recharge-input" placeholder="0 SDG">
+                    <button class="btn btn-charge" style="width:100%" onclick="executeCharge()">CONFIRM
+                        RECHARGE</button>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-charge" onclick="showrechargeInput()">⚡ CHARGE</button>
+                    <button class="btn btn-block" id="blockBtn" onclick="toggleBlock()">🚫 BLOCK</button>
                 </div>
             </div>
         </div>
@@ -409,6 +439,7 @@
     <script>
         const API_BASE = '/api';
         let agentToken = localStorage.getItem('agentToken');
+        let currentUser = null;
 
         // Check login
         function checkLogin() {
@@ -416,154 +447,153 @@
                 window.location.href = '/admin/recharge-login.html';
                 return;
             }
-
             document.getElementById('agentName').textContent = localStorage.getItem('agentName') || 'UNKNOWN';
-            document.getElementById('agentBalance').textContent =
-                parseInt(localStorage.getItem('agentBalance') || 0).toLocaleString();
-
             loadBalance();
             loadHistory();
         }
         checkLogin();
 
         function logout() {
-            localStorage.removeItem('agentToken');
-            localStorage.removeItem('agentName');
-            localStorage.removeItem('agentUsername');
-            localStorage.removeItem('agentBalance');
+            localStorage.clear();
             window.location.href = '/admin/recharge-login.html';
         }
 
         async function apiCall(endpoint, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                'x-agent-token': agentToken
-            };
-
-            const response = await fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers: { ...headers, ...options.headers }
-            });
-
-            if (response.status === 401) {
-                logout();
-                return null;
-            }
-
+            const headers = { 'Content-Type': 'application/json', 'x-agent-token': agentToken };
+            const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+            if (response.status === 401) { logout(); return null; }
             return await response.json();
         }
 
         async function loadBalance() {
             const data = await apiCall('/agent/balance');
-            if (data && data.success) {
+            if (data?.success) {
                 document.getElementById('agentBalance').textContent = data.balance.toLocaleString();
-                localStorage.setItem('agentBalance', data.balance);
+            }
+        }
+
+        async function searchUser() {
+            const num = document.getElementById('searchInput').value;
+            if (num.length !== 7) return alert('Enter valid 7-digit account number');
+
+            const btn = document.querySelector('.search-btn');
+            btn.innerHTML = '⏳';
+
+            try {
+                const response = await fetch(`${API_BASE}/account/${num}`);
+                const data = await response.json();
+
+                if (data.success && data.account) {
+                    currentUser = data.account;
+                    currentUser.account_number = num; // Ensure account number is present
+
+                    document.getElementById('resName').textContent = currentUser.account_name || currentUser.name;
+                    document.getElementById('resAccount').textContent = num;
+                    document.getElementById('resBalance').textContent = (currentUser.balance || 0).toLocaleString();
+                    document.getElementById('searchResult').classList.add('show');
+                } else {
+                    alert('Account not found');
+                    document.getElementById('searchResult').classList.remove('show');
+                    currentUser = null;
+                }
+            } catch (e) {
+                alert('Connection error');
+            } finally {
+                btn.innerHTML = '🔍';
+            }
+        }
+
+        function openUserModal() {
+            if (!currentUser) return;
+
+            document.getElementById('modalName').textContent = currentUser.account_name || currentUser.name;
+            document.getElementById('modalAccount').textContent = currentUser.account_number;
+            document.getElementById('modalBalance').textContent = (currentUser.balance || 0).toLocaleString();
+
+            const status = currentUser.status || 'active';
+            const statusEl = document.getElementById('modalStatus');
+            const blockBtn = document.getElementById('blockBtn');
+
+            if (status === 'banned') {
+                statusEl.textContent = 'BANNED 🚫';
+                statusEl.style.color = 'var(--neon-red)';
+                blockBtn.textContent = '✅ UNBLOCK';
+                blockBtn.style.color = 'var(--neon-green)';
+                blockBtn.style.borderColor = 'var(--neon-green)';
+            } else {
+                statusEl.textContent = 'ACTIVE ✅';
+                statusEl.style.color = 'var(--neon-green)';
+                blockBtn.textContent = '🚫 BLOCK';
+                blockBtn.style.color = 'var(--neon-red)';
+                blockBtn.style.borderColor = 'var(--neon-red)';
+            }
+
+            document.getElementById('rechargeGroup').style.display = 'none';
+            document.getElementById('userModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').classList.remove('active');
+        }
+
+        function showrechargeInput() {
+            document.getElementById('rechargeGroup').style.display = 'block';
+        }
+
+        async function executeCharge() {
+            const amount = document.getElementById('chargeAmount').value;
+            if (!amount || amount < 1) return alert('Invalid amount');
+
+            if (!confirm(`Confirm recharge ${amount} SDG to ${currentUser.name}?`)) return;
+
+            const data = await apiCall('/agent/recharge', {
+                method: 'POST',
+                body: JSON.stringify({ account_number: currentUser.account_number, amount: parseInt(amount) })
+            });
+
+            if (data?.success) {
+                alert('SUCCESS: Account recharged!');
+                closeModal();
+                loadBalance();
+                searchUser(); // Refresh data
+                loadHistory();
+            } else {
+                alert('ERROR: ' + (data?.message || 'Failed'));
+            }
+        }
+
+        async function toggleBlock() {
+            if (!confirm('Are you sure you want to change account status?')) return;
+
+            const data = await apiCall('/agent/toggle-account-status', {
+                method: 'POST',
+                body: JSON.stringify({ account_number: currentUser.account_number })
+            });
+
+            if (data?.success) {
+                alert(data.message);
+                // Update local object
+                currentUser.status = data.new_status;
+                openUserModal(); // Refresh modal
+            } else {
+                alert('ERROR: ' + (data?.message || 'Failed'));
             }
         }
 
         async function loadHistory() {
             const data = await apiCall('/agent/transactions');
-            const historyDiv = document.getElementById('historyList');
-
-            if (!data || !data.success || data.transactions.length === 0) {
-                historyDiv.innerHTML = '<p class="no-history">[ NO TRANSACTIONS ]</p>';
-                return;
-            }
-
-            historyDiv.innerHTML = data.transactions.slice(0, 10).map(item => `
-                <div class="history-item">
-                    <div>
-                        <div class="account">${item.target_account || 'ADMIN CREDIT'}</div>
-                        <div class="time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div>
+            const div = document.getElementById('historyList');
+            if (data?.success && data.transactions.length > 0) {
+                div.innerHTML = data.transactions.slice(0, 5).map(t => `
+                    <div style="border-bottom:1px solid #333;padding:10px 0;font-size:13px;color:#888;">
+                        <span style="color:var(--neon-cyan)">${t.target_account}</span>
+                        <span style="float:right;color:#fff">${t.type.includes('recharge') ? '+' : ''}${t.amount}</span>
                     </div>
-                    <div class="amount">${item.type === 'admin_credit' ? '+' : '-'}${item.amount.toLocaleString()}</div>
-                </div>
-            `).join('');
-        }
-
-        function showMessage(text, type) {
-            const msg = document.getElementById('message');
-            msg.textContent = text;
-            msg.className = 'message show ' + type;
-            setTimeout(() => msg.classList.remove('show'), 5000);
-        }
-
-        // Lookup account
-        document.getElementById('accountNumber').addEventListener('input', async function () {
-            const accountNumber = this.value;
-            const infoDiv = document.getElementById('accountInfo');
-
-            if (accountNumber.length === 7) {
-                try {
-                    const response = await fetch(`${API_BASE}/account/${accountNumber}`);
-                    const data = await response.json();
-
-                    if (data.success && data.account) {
-                        document.getElementById('accountName').textContent =
-                            data.account.account_name || data.account.name || 'UNKNOWN';
-                        document.getElementById('currentBalance').textContent =
-                            (data.account.balance || 0).toLocaleString() + ' SDG';
-                        infoDiv.classList.add('show');
-                    } else {
-                        infoDiv.classList.remove('show');
-                    }
-                } catch (error) {
-                    infoDiv.classList.remove('show');
-                }
+                `).join('');
             } else {
-                infoDiv.classList.remove('show');
+                div.innerHTML = '<p style="color:#444;text-align:center;">No history</p>';
             }
-        });
-
-        // Submit recharge
-        document.getElementById('rechargeForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const accountNumber = document.getElementById('accountNumber').value;
-            const amount = parseInt(document.getElementById('amount').value);
-            const submitBtn = document.getElementById('submitBtn');
-
-            if (!accountNumber || accountNumber.length !== 7) {
-                showMessage('[ ERROR ] Account must be 7 digits', 'error');
-                return;
-            }
-
-            if (!amount || amount < 1) {
-                showMessage('[ ERROR ] Invalid amount', 'error');
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ PROCESSING...';
-
-            try {
-                const data = await apiCall('/agent/recharge', {
-                    method: 'POST',
-                    body: JSON.stringify({ account_number: accountNumber, amount })
-                });
-
-                if (data && data.success) {
-                    showMessage(`[ SUCCESS ] +${amount.toLocaleString()} SDG sent!`, 'success');
-
-                    // Update balance display
-                    document.getElementById('agentBalance').textContent = data.newAgentBalance.toLocaleString();
-                    localStorage.setItem('agentBalance', data.newAgentBalance);
-
-                    document.getElementById('currentBalance').textContent =
-                        data.newUserBalance.toLocaleString() + ' SDG';
-                    document.getElementById('amount').value = '';
-
-                    loadHistory();
-                } else {
-                    showMessage('[ ERROR ] ' + (data?.message || 'Recharge failed'), 'error');
-                }
-            } catch (error) {
-                showMessage('[ ERROR ] Server connection failed', 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '⚡ EXECUTE RECHARGE';
-            }
-        });
+        }
     </script>
 </body>
 

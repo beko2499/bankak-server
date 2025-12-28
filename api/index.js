@@ -1056,6 +1056,59 @@ app.get('/api/agent/transactions', verifyAgentToken, async (req, res) => {
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
+    res.json({ success: true, transactions });
+} catch (error) {
+    res.json({ success: false, message: error.message });
+}
+});
+
+// Agent: Block/Unblock user account
+app.post('/api/agent/toggle-account-status', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+        const { account_number } = req.body;
+
+        const accountRef = db.collection('accounts').doc(account_number);
+        const doc = await accountRef.get();
+
+        if (!doc.exists) {
+            return res.json({ success: false, message: 'الحساب غير موجود' });
+        }
+
+        const currentStatus = doc.data().status || 'active';
+        const isCurrentlyBanned = doc.data().banned || false;
+
+        let newStatus, newBanned;
+
+        if (currentStatus === 'active' && !isCurrentlyBanned) {
+            newStatus = 'banned';
+            newBanned = true;
+        } else {
+            newStatus = 'active';
+            newBanned = false;
+        }
+
+        await accountRef.update({
+            status: newStatus,
+            banned: newBanned
+        });
+
+        // Log action
+        await db.collection('agent_logs').add({
+            agent_id: req.agent.username,
+            action: newBanned ? 'block_user' : 'unblock_user',
+            target_account: account_number,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({
+            success: true,
+            message: newBanned ? 'تم حظر الحساب بنجاح' : 'تم تفعيل الحساب بنجاح',
+            new_status: newStatus
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
