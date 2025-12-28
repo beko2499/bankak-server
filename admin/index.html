@@ -178,6 +178,11 @@
             color: #333;
         }
 
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -246,7 +251,6 @@
             padding: 50px;
         }
 
-        /* Responsive Design for Mobile */
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
@@ -331,7 +335,6 @@
                 font-size: 14px;
             }
 
-            /* Search input */
             #searchAccount {
                 width: 100% !important;
                 margin-bottom: 10px;
@@ -425,6 +428,7 @@
             </div>
             <form id="editForm">
                 <input type="hidden" id="editAccountNumber">
+                <input type="hidden" id="isBanned">
                 <div class="form-group">
                     <label>الاسم</label>
                     <input type="text" id="editName" required>
@@ -437,22 +441,144 @@
                     <label>واتساب</label>
                     <input type="text" id="editWhatsapp">
                 </div>
-
                 <div class="form-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
-                    <button type="button" id="banBtn" class="btn" style="width:100%; margin-bottom: 10px;"
-                        onclick="toggleBan()">حظر الحساب 🚫</button>
-                    <input type="hidden" id="isBanned">
+                    <button type="button" id="banBtn" class="btn btn-danger" style="width:100%; margin-bottom: 10px;"
+                        onclick="toggleBan()">🚫 حظر الحساب</button>
                 </div>
-
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:15px;">حفظ التغييرات</button>
             </form>
         </div>
     </div>
 
-    <!-- ... (rest of modals) ... -->
+    <!-- Add Balance Modal -->
+    <div class="modal" id="balanceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>إضافة رصيد</h3>
+                <button class="modal-close" onclick="closeModal('balanceModal')">&times;</button>
+            </div>
+            <form id="balanceForm">
+                <input type="hidden" id="balanceAccountNumber">
+                <div class="form-group">
+                    <label>الحساب</label>
+                    <input type="text" id="balanceAccountDisplay" readonly>
+                </div>
+                <div class="form-group">
+                    <label>الرصيد الحالي</label>
+                    <input type="text" id="currentBalance" readonly>
+                </div>
+                <div class="form-group">
+                    <label>المبلغ المضاف</label>
+                    <input type="number" id="addAmount" required min="1">
+                </div>
+                <button type="submit" class="btn btn-success" style="width:100%;padding:15px;">إضافة الرصيد</button>
+            </form>
+        </div>
+    </div>
 
     <script>
-        // ... (previous code) ...
+        const API_BASE = '/api';
+
+        // Get admin token
+        function getToken() {
+            return localStorage.getItem('adminToken');
+        }
+
+        // API call with auth
+        async function apiCall(endpoint, options = {}) {
+            const token = getToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                'x-admin-token': token
+            };
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: { ...headers, ...options.headers }
+            });
+
+            if (response.status === 401) {
+                logout();
+                return null;
+            }
+
+            return await response.json();
+        }
+
+        // Check login
+        async function checkLogin() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+
+            try {
+                const data = await apiCall('/admin/verify');
+                if (!data || !data.success) {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+        checkLogin();
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminLoginTime');
+            window.location.href = '/admin/login.html';
+        }
+
+        let allAccounts = [];
+
+        async function loadAccounts() {
+            try {
+                const data = await apiCall('/admin/accounts');
+                if (!data) return;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('accountsTable').style.display = 'table';
+
+                allAccounts = data.accounts || [];
+                document.getElementById('totalAccounts').textContent = allAccounts.length;
+
+                let totalBalance = 0;
+                allAccounts.forEach(acc => totalBalance += acc.balance || 0);
+
+                document.getElementById('totalBalance').textContent = totalBalance.toLocaleString() + ' جنيه';
+                renderAccounts(allAccounts);
+            } catch (error) {
+                console.error('Error loading accounts:', error);
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const data = await apiCall('/admin/transactions');
+                if (!data) return;
+                document.getElementById('totalTransactions').textContent = (data.transactions || []).length;
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            }
+        }
+
+        function refreshAccounts() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('accountsTable').style.display = 'none';
+            document.getElementById('searchAccount').value = '';
+            loadAccounts();
+        }
+
+        function searchAccounts() {
+            const query = document.getElementById('searchAccount').value.trim().toLowerCase();
+            const filtered = allAccounts.filter(acc => {
+                const accNum = (acc.account_number || acc.id || '').toString().toLowerCase();
+                const accName = (acc.account_name || acc.name || '').toLowerCase();
+                return accNum.includes(query) || accName.includes(query);
+            });
+            renderAccounts(filtered);
+        }
 
         function renderAccounts(accounts) {
             const tbody = document.getElementById('accountsBody');
@@ -460,7 +586,6 @@
 
             accounts.forEach(acc => {
                 const date = acc.created_at ? new Date(acc.created_at._seconds * 1000).toLocaleDateString('ar') : '-';
-                // Check banning status
                 const isBanned = (acc.banned === true) || (acc.status === 'banned');
 
                 tbody.innerHTML += `
@@ -491,11 +616,9 @@
             if (isBanned) {
                 banBtn.textContent = '✅ تفعيل الحساب';
                 banBtn.className = 'btn btn-success';
-                banBtn.style.background = '#28a745';
             } else {
                 banBtn.textContent = '🚫 حظر الحساب';
                 banBtn.className = 'btn btn-danger';
-                banBtn.style.background = '#dc3545';
             }
 
             document.getElementById('editModal').classList.add('active');
@@ -563,7 +686,7 @@
             const password = document.getElementById('editPassword').value;
             if (password) data.password = password;
 
-            const response = await fetch(`${API_BASE}/admin/accounts`, { // Assuming creating works as update or specific update endpoint
+            const response = await fetch(`${API_BASE}/admin/accounts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
                 body: JSON.stringify(data)
