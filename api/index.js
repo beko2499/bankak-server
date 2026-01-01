@@ -187,13 +187,25 @@ app.post('/api/login.php', async (req, res) => {
                 });
             }
 
-            // Check if banned
+            // Check if active
+            const status = accountData.status || 'inactive'; // Default to inactive for old accounts if field missing? Or active?
+            // Actually, for backward compatibility, maybe default to active if missing?
+            // But user said "don't work unless activated".
+            // Let's check status.
+
             if (accountData.banned) {
                 return res.json({
                     success: false,
                     app_status: 'banned',
-                    message: 'تم حظر حسابك',
-                    ban_reason: accountData.ban_reason || 'لا يوجد سبب محدد'
+                    message: 'تم حظر حسابك'
+                });
+            }
+
+            if (status !== 'active') {
+                return res.json({
+                    success: false,
+                    app_status: 'inactive',
+                    message: 'الحساب غير نشط. يرجى التواصل مع أقرب وكيل لتفعيل حسابك.'
                 });
             }
 
@@ -695,6 +707,42 @@ app.post('/api/admin/ban', verifyAdminToken, async (req, res) => {
     }
 });
 
+// Mass Deactivate Accounts
+app.post('/api/admin/deactivate-all', verifyAdminToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: true, message: 'No DB' });
+
+        const snapshot = await db.collection('accounts').get();
+        const batches = [];
+        let batch = db.batch();
+        let count = 0;
+        let batchCount = 0;
+
+        snapshot.forEach(doc => {
+            const ref = db.collection('accounts').doc(doc.id);
+            batch.update(ref, { status: 'inactive' });
+            count++;
+            batchCount++;
+
+            if (batchCount >= 500) {
+                batches.push(batch.commit());
+                batch = db.batch();
+                batchCount = 0;
+            }
+        });
+
+        if (batchCount > 0) {
+            batches.push(batch.commit());
+        }
+
+        await Promise.all(batches);
+
+        res.json({ success: true, message: `تم إلغاء تنشيط ${count} حساب بنجاح` });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
 // ============= PUBLIC REGISTRATION =============
 app.post('/api/register', async (req, res) => {
     try {
@@ -720,7 +768,10 @@ app.post('/api/register', async (req, res) => {
             balance: 2000, // Fixed starting balance
             account_type: 'حساب جاري',
             branch: 'الخرطوم',
+            account_type: 'حساب جاري',
+            branch: 'الخرطوم',
             banned: false,
+            status: 'inactive', // Default status for new users
             created_at: db ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
         };
 
@@ -1285,6 +1336,40 @@ app.get('/api/agent/transactions', verifyAgentToken, async (req, res) => {
     }
 });
 
+// Agent: Update User Account
+app.post('/api/agent/update-user-account', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+        const { account_number, account_name, password, whatsapp } = req.body;
+
+        const accountRef = db.collection('accounts').doc(account_number);
+        const doc = await accountRef.get();
+
+        if (!doc.exists) {
+            return res.json({ success: false, message: 'الحساب غير موجود' });
+        }
+
+        const updateData = {};
+        if (account_name) updateData.account_name = account_name;
+        if (password) updateData.password = password; // Only update if provided
+        if (whatsapp !== undefined) updateData.whatsapp = whatsapp;
+
+        await accountRef.update(updateData);
+
+        // Log action
+        await db.collection('agent_logs').add({
+            agent_id: req.agent.username,
+            action: 'update_user_info',
+            target_account: account_number,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({ success: true, message: 'تم تحديث بيانات الحساب بنجاح' });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
 // Agent: Block/Unblock user account
 app.post('/api/agent/toggle-account-status', verifyAgentToken, async (req, res) => {
     try {
@@ -1301,34 +1386,117 @@ app.post('/api/agent/toggle-account-status', verifyAgentToken, async (req, res) 
         const currentStatus = doc.data().status || 'active';
         const isCurrentlyBanned = doc.data().banned || false;
 
-        let newStatus, newBanned;
-
-        if (currentStatus === 'active' && !isCurrentlyBanned) {
-            newStatus = 'banned';
-            newBanned = true;
+        if (currentStatus === 'active') {
+            newStatus = 'inactive';
         } else {
             newStatus = 'active';
-            newBanned = false;
         }
 
         await accountRef.update({
             status: newStatus,
-            banned: newBanned
+            banned: false // Ensure banned is false when activating/deactivating via this new flow
         });
 
         // Log action
         await db.collection('agent_logs').add({
             agent_id: req.agent.username,
-            action: newBanned ? 'block_user' : 'unblock_user',
+            action: newStatus === 'active' ? 'activate_user' : 'deactivate_user',
             target_account: account_number,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
         res.json({
             success: true,
-            message: newBanned ? 'تم حظر الحساب بنجاح' : 'تم تفعيل الحساب بنجاح',
+            message: newStatus === 'active' ? 'تم تفعيل الحساب بنجاح' : 'تم تعطيل الحساب بنجاح',
             new_status: newStatus
         });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// ============= QR BENEFICIARIES MANAGEMENT =============
+
+// Save QR Beneficiary
+app.post('/api/qr/save', async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+
+        const { qr_code, account_number, beneficiary_name, account_type, branch, user_id } = req.body;
+
+        if (!qr_code || !account_number) {
+            return res.json({ success: false, message: 'QR code and account number are required' });
+        }
+
+        await db.collection('qr_beneficiaries').doc(qr_code).set({
+            qr_code: qr_code,
+            account_number: account_number,
+            beneficiary_name: beneficiary_name || '',
+            account_type: account_type || '',
+            branch: branch || '',
+            user_id: user_id || '',
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            updated_at: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        res.json({ success: true, message: 'تم حفظ المستفيد بنجاح' });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// Get QR Beneficiary by code
+app.get('/api/qr/get/:code', async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+
+        const { code } = req.params;
+        const doc = await db.collection('qr_beneficiaries').doc(code).get();
+
+        if (doc.exists) {
+            res.json({ success: true, beneficiary: doc.data() });
+        } else {
+            res.json({ success: false, message: 'QR غير موجود' });
+        }
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// List all QR Beneficiaries for a user
+app.get('/api/qr/list', async (req, res) => {
+    try {
+        if (!db) return res.json({ success: true, beneficiaries: [] });
+
+        const user_id = req.query.user_id || '';
+        let query = db.collection('qr_beneficiaries');
+
+        if (user_id) {
+            query = query.where('user_id', '==', user_id);
+        }
+
+        const snapshot = await query.orderBy('created_at', 'desc').limit(50).get();
+        const beneficiaries = [];
+
+        snapshot.forEach(doc => {
+            beneficiaries.push(doc.data());
+        });
+
+        res.json({ success: true, beneficiaries });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// Delete QR Beneficiary
+app.delete('/api/qr/delete/:code', async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+
+        const { code } = req.params;
+        await db.collection('qr_beneficiaries').doc(code).delete();
+
+        res.json({ success: true, message: 'تم حذف المستفيد بنجاح' });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }

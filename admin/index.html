@@ -364,6 +364,8 @@
         <div class="navbar-links">
             <a href="/admin/agents.html">👥 الوكلاء</a>
             <a href="/admin/transactions.html">المعاملات</a>
+            <a href="#" class="logout-btn" style="background:#ff3333 !important" onclick="deactivateAll()">⚠️ تعطيل
+                الجميع</a>
             <a href="/admin/register.html">إضافة حساب</a>
             <a href="#" class="logout-btn" onclick="logout()">خروج</a>
         </div>
@@ -723,9 +725,26 @@
             }
         });
 
-        // Load initial data
+        // Initial Load
         loadAccounts();
         loadTransactions();
+
+        async function deactivateAll() {
+            if (!confirm('⚠️ تحذير خطير!\nهل أنت متأكد أنك تريد إلغاء تنشيط جميع الحسابات؟\nلن يتمكن أي مستخدم من الدخول إلا بعد التفعيل من قبل الوكيل.')) return;
+            if (!confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) return;
+
+            try {
+                const data = await apiCall('/admin/deactivate-all', { method: 'POST' });
+                if (data && data.success) {
+                    alert(data.message);
+                    loadAccounts();
+                } else {
+                    alert('فشلت العملية: ' + (data?.message || 'Error'));
+                }
+            } catch (e) {
+                alert('Network Error');
+            }
+        }
     </script>
 </body>
 

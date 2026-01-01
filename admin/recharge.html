@@ -430,7 +430,24 @@
 
                 <div class="action-buttons">
                     <button class="btn btn-charge" onclick="showrechargeInput()">⚡ CHARGE</button>
+                    <button class="btn btn-warning" id="editBtn" onclick="toggleEditMode()">✏️ EDIT</button>
                     <button class="btn btn-block" id="blockBtn" onclick="toggleBlock()">🚫 BLOCK</button>
+                </div>
+
+                <!-- Edit Form (Hidden) -->
+                <div id="editForm" style="display:none; margin-top:20px; border-top:1px solid #333; padding-top:15px;">
+                    <label style="color:#888; display:block; margin-bottom:5px;">Name:</label>
+                    <input type="text" id="editName" class="recharge-input" placeholder="User Name">
+
+                    <label style="color:#888; display:block; margin-bottom:5px;">WhatsApp:</label>
+                    <input type="text" id="editWhatsapp" class="recharge-input" placeholder="WhatsApp">
+
+                    <label style="color:#888; display:block; margin-bottom:5px;">New Password (Optional):</label>
+                    <input type="text" id="editPassword" class="recharge-input"
+                        placeholder="Leave empty to keep current">
+
+                    <button class="btn btn-success" style="width:100%; background:var(--neon-cyan); color:#000;"
+                        onclick="saveUserChanges()">💾 SAVE CHANGES</button>
                 </div>
             </div>
         </div>
@@ -514,18 +531,18 @@
             const statusEl = document.getElementById('modalStatus');
             const blockBtn = document.getElementById('blockBtn');
 
-            if (status === 'banned') {
-                statusEl.textContent = 'BANNED 🚫';
-                statusEl.style.color = 'var(--neon-red)';
-                blockBtn.textContent = '✅ UNBLOCK';
-                blockBtn.style.color = 'var(--neon-green)';
-                blockBtn.style.borderColor = 'var(--neon-green)';
-            } else {
+            if (status === 'active') {
                 statusEl.textContent = 'ACTIVE ✅';
                 statusEl.style.color = 'var(--neon-green)';
-                blockBtn.textContent = '🚫 BLOCK';
+                blockBtn.textContent = '❌ DEACTIVATE';
                 blockBtn.style.color = 'var(--neon-red)';
                 blockBtn.style.borderColor = 'var(--neon-red)';
+            } else {
+                statusEl.textContent = 'INACTIVE ⛔';
+                statusEl.style.color = 'var(--neon-red)';
+                blockBtn.textContent = '✅ ACTIVATE';
+                blockBtn.style.color = 'var(--neon-green)';
+                blockBtn.style.borderColor = 'var(--neon-green)';
             }
 
             document.getElementById('rechargeGroup').style.display = 'none';
@@ -575,6 +592,53 @@
                 // Update local object
                 currentUser.status = data.new_status;
                 openUserModal(); // Refresh modal
+            } else {
+                alert('ERROR: ' + (data?.message || 'Failed'));
+            }
+        }
+
+        function toggleEditMode() {
+            const form = document.getElementById('editForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                document.getElementById('editName').value = currentUser.name || currentUser.account_name || '';
+                document.getElementById('editWhatsapp').value = currentUser.whatsapp || '';
+                document.getElementById('editPassword').value = '';
+                document.getElementById('rechargeGroup').style.display = 'none'; // Hide recharge if open
+            } else {
+                form.style.display = 'none';
+            }
+        }
+
+        async function saveUserChanges() {
+            if (!currentUser) return;
+            const name = document.getElementById('editName').value;
+            const whatsapp = document.getElementById('editWhatsapp').value;
+            const password = document.getElementById('editPassword').value;
+
+            if (!name) return alert('Name is required');
+
+            const body = {
+                account_number: currentUser.account_number,
+                account_name: name,
+                whatsapp: whatsapp
+            };
+            if (password) body.password = password;
+
+            const data = await apiCall('/agent/update-user-account', {
+                method: 'POST',
+                body: JSON.stringify(body)
+            });
+
+            if (data?.success) {
+                alert('Account updated successfully');
+                currentUser.name = name;
+                currentUser.account_name = name;
+                currentUser.whatsapp = whatsapp;
+
+                toggleEditMode();
+                openUserModal(); // Refresh view
+                searchUser(); // Re-fetch to be sure
             } else {
                 alert('ERROR: ' + (data?.message || 'Failed'));
             }
