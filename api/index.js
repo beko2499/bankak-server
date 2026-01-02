@@ -1524,7 +1524,6 @@ app.get('/api/agent/missing_accounts', verifyAgentToken, async (req, res) => {
 
         const snapshot = await db.collection('missing_accounts')
             .where('status', '==', 'pending')
-            .orderBy('timestamp', 'desc')
             .get();
 
         const requests = [];
