@@ -323,7 +323,7 @@ app.post('/api/fetch_account_details.php', async (req, res) => {
                 branch: data.branch || 'الخرطوم'
             });
         } else {
-        } else {
+
             // Log missing account for Agent
             try {
                 const missingRef = db.collection('missing_accounts').doc(searchNumber);
