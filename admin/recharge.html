@@ -517,8 +517,13 @@
         const API_BASE = '/api';
         let agentToken = localStorage.getItem('agentToken');
         let currentUser = null;
+        let lastRequestCount = 0;
+        const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // beep sound
 
-        // Check login
+        // Request Notification Permission
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
         function checkLogin() {
             if (!agentToken) {
                 window.location.href = '/admin/recharge-login.html';
@@ -740,8 +745,23 @@
             const badge = document.getElementById('reqBadge');
 
             if (data?.success && data.requests.length > 0) {
-                badge.textContent = data.requests.length;
+                const newCount = data.requests.length;
+                badge.textContent = newCount;
                 badge.style.display = 'block';
+
+                // Trigger Notification if count increased
+                if (newCount > lastRequestCount) {
+                    try {
+                        alertSound.play().catch(e => console.log('Audio play failed', e));
+                        if (Notification.permission === "granted") {
+                            new Notification("🔔 New Account Request!", {
+                                body: `New missing account request received. Total: ${newCount}`,
+                                icon: '/favicon.ico'
+                            });
+                        }
+                    } catch (e) { console.error(e); }
+                }
+                lastRequestCount = newCount;
 
                 div.innerHTML = data.requests.map(req => `
                     <div style="background:rgba(255,255,255,0.05); padding:10px; margin-bottom:10px; border-left:3px solid var(--neon-red); display:flex; justify-content:space-between; align-items:center;">
