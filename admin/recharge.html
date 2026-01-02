@@ -606,16 +606,34 @@
             return outputArray;
         }
 
-        function testNotification() {
-            Notification.requestPermission().then(perm => {
-                if (perm === "granted") {
-                    new Notification("Test Notification", { body: "This is a test!", icon: '/favicon.ico', vibrate: [200, 100, 200] });
-                    alertSound.play();
-                    if ("vibrate" in navigator) navigator.vibrate([200]);
-                } else {
+        async function testNotification() {
+            try {
+                const perm = await Notification.requestPermission();
+                if (perm !== "granted") {
                     alert('Permission denied! Check browser settings.');
+                    return;
                 }
-            });
+
+                // Use Service Worker for mobile compatibility
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    await registration.showNotification("🔔 Test Notification", {
+                        body: "This is a test! If you see this, notifications work!",
+                        icon: 'https://cdn-icons-png.flaticon.com/512/3602/3602145.png',
+                        vibrate: [200, 100, 200],
+                        requireInteraction: true,
+                        tag: 'test-notification'
+                    });
+                    alertSound.play();
+                    alert('Notification sent! Check your phone shade.');
+                } else {
+                    // Fallback for browsers without SW
+                    new Notification("Test", { body: "Test notification" });
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+                console.error(e);
+            }
         }
 
         function checkLogin() {
