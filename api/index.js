@@ -244,8 +244,8 @@ app.post('/api/login.php', async (req, res) => {
 // ============= CHECK INTERNAL ACCOUNT =============
 app.post('/api/check_internal_account.php', async (req, res) => {
     try {
-        const { account_number, short_number } = req.body;
-        const searchNumber = account_number || short_number;
+        const { account_number, short_number, short_account_number } = req.body;
+        const searchNumber = account_number || short_number || short_account_number;
 
         console.log('Checking account:', searchNumber);
 
@@ -295,8 +295,8 @@ app.post('/api/check_internal_account.php', async (req, res) => {
 // ============= FETCH ACCOUNT DETAILS =============
 app.post('/api/fetch_account_details.php', async (req, res) => {
     try {
-        const { account_number, short_number } = req.body;
-        const searchNumber = account_number || short_number;
+        const { account_number, short_number, short_account_number } = req.body;
+        const searchNumber = account_number || short_number || short_account_number;
 
         console.log('Fetching account details:', searchNumber);
 
