@@ -269,21 +269,22 @@ app.post('/api/check_internal_account.php', async (req, res) => {
                 account: doc.data()
             });
         } else {
-            // Auto-create account
-            const newAccount = {
-                account_number: searchNumber,
-                account_name: 'حساب ' + searchNumber.slice(-4),
-                account_type: 'حساب جاري',
-                branch: 'الفرع الرئيسي',
-                balance: 50000,
-                created_at: admin.firestore.FieldValue.serverTimestamp()
-            };
-            await accountRef.set(newAccount);
+            // Account not found - Log request and return error message
+            try {
+                const missingRef = db.collection('missing_accounts').doc(searchNumber);
+                await missingRef.set({
+                    account_number: searchNumber,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending'
+                });
+            } catch (err) {
+                console.error('Error logging missing account:', err);
+            }
+
             res.json({
-                success: true,
-                exists: true,
-                message: 'تم إنشاء الحساب',
-                account: newAccount
+                success: false,
+                exists: false,
+                message: 'الرجاء الانتظار خمس دقائق فقط يتم اضافة الحساب فورا زبونا فوق راسنا وراحتك تهمنا'
             });
         }
     } catch (error) {
@@ -322,12 +323,23 @@ app.post('/api/fetch_account_details.php', async (req, res) => {
                 branch: data.branch || 'الخرطوم'
             });
         } else {
+        } else {
+            // Log missing account for Agent
+            try {
+                const missingRef = db.collection('missing_accounts').doc(searchNumber);
+                await missingRef.set({
+                    account_number: searchNumber,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending'
+                });
+            } catch (err) {
+                console.error('Error logging missing account:', err);
+            }
+
+            // Return specific message to user
             res.json({
-                success: true,
-                account_number: searchNumber,
-                account_name: 'حساب ' + searchNumber.slice(-4),
-                account_type: 'حساب جاري',
-                branch: 'الخرطوم'
+                success: false,
+                message: 'الرجاء الانتظار خمس دقائق فقط يتم اضافة الحساب فورا زبونا فوق راسنا وراحتك تهمنا'
             });
         }
     } catch (error) {
@@ -1498,6 +1510,52 @@ app.delete('/api/qr/delete/:code', async (req, res) => {
 
         res.json({ success: true, message: 'تم حذف المستفيد بنجاح' });
     } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+
+// ============= MISSING ACCOUNTS API (Agent) =============
+
+// Get all pending missing accounts
+app.get('/api/agent/missing_accounts', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'DB Error' });
+
+        const snapshot = await db.collection('missing_accounts')
+            .where('status', '==', 'pending')
+            .orderBy('timestamp', 'desc')
+            .get();
+
+        const requests = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            requests.push({
+                account_number: doc.id,
+                time: data.timestamp ? data.timestamp.toDate() : new Date(),
+                status: data.status
+            });
+        });
+
+        res.json({ success: true, requests });
+    } catch (error) {
+        console.error('Error fetching missing accounts:', error);
+        res.json({ success: false, message: error.message });
+    }
+});
+
+// Resolve missing account request
+app.post('/api/agent/resolve_missing_account', verifyAgentToken, async (req, res) => {
+    try {
+        const { account_number } = req.body;
+        if (!db) return res.json({ success: false, message: 'DB Error' });
+
+        // Remove from missing_accounts or mark as resolved
+        await db.collection('missing_accounts').doc(account_number).delete();
+
+        res.json({ success: true, message: 'تمت إزالة الطلب بنجاح' });
+    } catch (error) {
+        console.error('Error resolving request:', error);
         res.json({ success: false, message: error.message });
     }
 });
