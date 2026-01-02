@@ -455,6 +455,8 @@
                 <div class="action-buttons">
                     <button class="btn btn-charge" onclick="showrechargeInput()">⚡ CHARGE</button>
                     <button class="btn btn-warning" id="editBtn" onclick="toggleEditMode()">✏️ EDIT</button>
+                    <button class="btn" style="background:orange; color:black; font-weight:bold;"
+                        onclick="recallBalance()">🔙 RECALL</button>
                     <button class="btn btn-block" id="blockBtn" onclick="toggleBlock()">🚫 BLOCK</button>
                 </div>
 
@@ -513,6 +515,20 @@
         </div>
     </div>
 
+    <!-- Notification Permission Modal -->
+    <div class="modal" id="notifModal" style="z-index: 9999;">
+        <div class="modal-content">
+            <div class="modal-inner" style="text-align:center;">
+                <div style="font-size:50px; margin-bottom:20px;">🔔</div>
+                <h2 style="color:var(--neon-green); margin-bottom:10px;">ENABLE ALERTS</h2>
+                <p style="color:#ccc; margin-bottom:20px;">You must enable notifications to receive new account alerts.
+                </p>
+                <button class="btn btn-charge" onclick="enableNotifs()"
+                    style="width:100%; padding:15px; font-size:18px;">ALLOW NOTIFICATIONS</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = '/api';
         let agentToken = localStorage.getItem('agentToken');
@@ -520,18 +536,25 @@
         let lastRequestCount = 0;
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // beep sound
 
-        // Request Notification Permission
-        if ("Notification" in window) {
-            Notification.requestPermission();
-        }
-        function checkLogin() {
-            if (!agentToken) {
-                window.location.href = '/admin/recharge-login.html';
-                return;
+        // Request Notification Permission on load if not granted
+        window.onload = function () {
+            if ("Notification" in window && Notification.permission !== "granted") {
+                document.getElementById('notifModal').classList.add('active');
             }
-            document.getElementById('agentName').textContent = localStorage.getItem('agentName') || 'UNKNOWN';
-            loadBalance();
-            loadHistory();
+            checkLogin();
+        };
+
+        function enableNotifs() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    document.getElementById('notifModal').classList.remove('active');
+                    alertSound.play().catch(e => { }); // Test sound
+                }
+            });
+        }
+        document.getElementById('agentName').textContent = localStorage.getItem('agentName') || 'UNKNOWN';
+        loadBalance();
+        loadHistory();
         }
         checkLogin();
 
@@ -659,6 +682,27 @@
                 openUserModal(); // Refresh modal
             } else {
                 alert('ERROR: ' + (data?.message || 'Failed'));
+            }
+        }
+
+        async function recallBalance() {
+            if (!currentUser) return;
+            const balance = currentUser.balance || 0;
+            if (balance <= 0) return alert('Balance is already zero.');
+
+            if (!confirm(`Are you sure you want to RECALL all funds (${balance} SDG) from this user back to your agent account?`)) return;
+
+            const data = await apiCall('/agent/recall_balance', {
+                method: 'POST',
+                body: JSON.stringify({ account_number: currentUser.account_number })
+            });
+
+            if (data?.success) {
+                alert('Balance Recalled Successfully! Funds returned to agent.');
+                loadBalance(); // Refresh agent balance
+                searchUser(); // Refresh user view
+            } else {
+                alert('Failed: ' + (data?.message || 'Unknown error'));
             }
         }
 
