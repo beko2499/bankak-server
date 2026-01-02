@@ -564,7 +564,12 @@
 
                     // Register Service Worker
                     await registerSw();
+                } else {
+                    alert('Permission Denied! Please enable notifications in your browser settings to continue.');
                 }
+            }).catch(err => {
+                alert('Error requesting permission: ' + err.message);
+                console.error(err);
             });
         }
 
