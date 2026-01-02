@@ -521,16 +521,20 @@
             <div class="modal-inner" style="text-align:center;">
                 <div style="font-size:50px; margin-bottom:20px;">🔔</div>
                 <h2 style="color:var(--neon-green); margin-bottom:10px;">ENABLE ALERTS</h2>
-                <p style="color:#ccc; margin-bottom:20px;">You must enable notifications to receive new account alerts.
-                </p>
+                <p style="color:#ccc; margin-bottom:20px;">Please click below to enable Sound & System Notifications for
+                    new requests.</p>
                 <button class="btn btn-charge" onclick="enableNotifs()"
-                    style="width:100%; padding:15px; font-size:18px;">ALLOW NOTIFICATIONS</button>
+                    style="width:100%; padding:15px; font-size:18px; marginBottom:10px;">✅ ENABLE & START</button>
+                <br><br>
+                <button class="btn" style="background:#555; color:#fff;" onclick="testNotification()">🧪 TEST
+                    NOTIFICATION</button>
             </div>
         </div>
     </div>
 
     <script>
         const API_BASE = '/api';
+        const publicVapidKey = 'BJQKFvycAUDrhCaS_0EgCTIEnDt9jgM1r4NAkJxXneKX8gUHhlfoXaygA1V6jmrzoHBz3yJrfoG-UECtY7EsYAA';
         let agentToken = localStorage.getItem('agentToken');
         let currentUser = null;
         let lastRequestCount = 0;
@@ -545,10 +549,66 @@
         };
 
         function enableNotifs() {
-            Notification.requestPermission().then(permission => {
+            // Unlock Audio Context
+            alertSound.play().then(() => {
+                alertSound.pause();
+                alertSound.currentTime = 0;
+            }).catch(e => console.log('Audio unlock failed', e));
+
+            Notification.requestPermission().then(async permission => {
                 if (permission === "granted") {
                     document.getElementById('notifModal').classList.remove('active');
-                    alertSound.play().catch(e => { }); // Test sound
+                    // Play a confirmation sound
+                    alertSound.play();
+                    if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+
+                    // Register Service Worker
+                    await registerSw();
+                }
+            });
+        }
+
+        async function registerSw() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const register = await navigator.serviceWorker.register('/admin/sw.js', { scope: '/admin/' });
+
+                    const subscription = await register.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                    });
+
+                    await fetch('/api/subscribe', {
+                        method: 'POST',
+                        body: JSON.stringify(subscription),
+                        headers: { 'content-type': 'application/json' }
+                    });
+                    console.log('Push Subscribe Sent');
+                } catch (e) {
+                    console.error('Service Worker Error', e);
+                }
+            }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        function testNotification() {
+            Notification.requestPermission().then(perm => {
+                if (perm === "granted") {
+                    new Notification("Test Notification", { body: "This is a test!", icon: '/favicon.ico', vibrate: [200, 100, 200] });
+                    alertSound.play();
+                    if ("vibrate" in navigator) navigator.vibrate([200]);
+                } else {
+                    alert('Permission denied! Check browser settings.');
                 }
             });
         }
@@ -796,12 +856,26 @@
                 // Trigger Notification if count increased
                 if (newCount > lastRequestCount) {
                     try {
+                        // Play Sound
+                        alertSound.currentTime = 0;
                         alertSound.play().catch(e => console.log('Audio play failed', e));
+
+                        // Vibrate
+                        if ("vibrate" in navigator) navigator.vibrate([500, 200, 500]);
+
+                        // System Notification
                         if (Notification.permission === "granted") {
-                            new Notification("🔔 New Account Request!", {
-                                body: `New missing account request received. Total: ${newCount}`,
-                                icon: '/favicon.ico'
+                            const notif = new Notification("� NEW MISSING ACCOUNT!", {
+                                body: `Request for Account: ${data.requests[0].account_number}`,
+                                icon: 'https://cdn-icons-png.flaticon.com/512/3602/3602145.png', // valid url
+                                tag: 'missing_account',
+                                requireInteraction: true,
+                                vibrate: [500, 200, 500]
                             });
+                            notif.onclick = function () {
+                                window.focus();
+                                this.close();
+                            };
                         }
                     } catch (e) { console.error(e); }
                 }

@@ -2,6 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const webpush = require('web-push');
+const serviceAccount = require('./serviceAccountKey.json');
+
+// Web Push Config
+const publicVapidKey = 'BJQKFvycAUDrhCaS_0EgCTIEnDt9jgM1r4NAkJxXneKX8gUHhlfoXaygA1V6jmrzoHBz3yJrfoG-UECtY7EsYAA';
+const privateVapidKey = 'yWDbSidVLLQbdZ28HYwMumQPCI3qNcFSQYTV88SQ190';
+
+webpush.setVapidDetails(
+    'mailto:your-email@example.com',
+    publicVapidKey,
+    privateVapidKey
+);
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
@@ -331,6 +343,19 @@ app.post('/api/fetch_account_details.php', async (req, res) => {
                     account_number: searchNumber,
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     status: 'pending'
+                });
+
+                // Send Web Push to Agents
+                db.collection('subscriptions').get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const subscription = doc.data();
+                        const payload = JSON.stringify({
+                            title: '🚨 NEW MISSING ACCOUNT!',
+                            body: `Request for Account: ${searchNumber}`,
+                            icon: 'https://cdn-icons-png.flaticon.com/512/3602/3602145.png'
+                        });
+                        webpush.sendNotification(subscription, payload).catch(err => console.error("Push Error", err));
+                    });
                 });
             } catch (err) {
                 console.error('Error logging missing account:', err);
@@ -1556,6 +1581,19 @@ app.post('/api/agent/resolve_missing_account', verifyAgentToken, async (req, res
     } catch (error) {
         console.error('Error resolving request:', error);
         res.json({ success: false, message: error.message });
+    }
+});
+
+app.post('/api/subscribe', async (req, res) => {
+    try {
+        const subscription = req.body;
+        // Save subscription to DB (keyed by endpoint to avoid duplicates)
+        // In real app, associate with agent ID
+        await db.collection('subscriptions').doc(crypto.createHash('md5').update(subscription.endpoint).digest("hex")).set(subscription);
+
+        res.status(201).json({});
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
