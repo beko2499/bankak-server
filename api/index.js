@@ -1452,6 +1452,50 @@ app.post('/api/agent/toggle-account-status', verifyAgentToken, async (req, res) 
     }
 });
 
+// Agent: Recall all user balance to agent
+app.post('/api/agent/recall_balance', verifyAgentToken, async (req, res) => {
+    try {
+        if (!db) return res.json({ success: false, message: 'Database error' });
+        const { account_number } = req.body;
+        const agentUsername = req.agent.username;
+
+        const userRef = db.collection('accounts').doc(account_number);
+        const agentRef = db.collection('agents').doc(agentUsername);
+
+        await db.runTransaction(async (t) => {
+            const userDoc = await t.get(userRef);
+            const agentDoc = await t.get(agentRef);
+
+            if (!userDoc.exists) throw new Error("User account not found");
+            if (!agentDoc.exists) throw new Error("Agent account not found");
+
+            const currentBalance = userDoc.data().balance || 0;
+            if (currentBalance <= 0) throw new Error("User balance is zero");
+
+            // Deduct from user (set to 0)
+            t.update(userRef, { balance: 0 });
+
+            // Add to agent
+            const agentBalance = agentDoc.data().balance || 0;
+            t.update(agentRef, { balance: agentBalance + currentBalance });
+
+            // Log Transaction
+            const transactionRef = db.collection('transactions').doc();
+            t.set(transactionRef, {
+                type: 'recall_balance',
+                agent_id: agentUsername,
+                target_account: account_number,
+                amount: currentBalance,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        res.json({ success: true, message: 'تم استرجاع الرصيد بنجاح' });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
 // ============= QR BENEFICIARIES MANAGEMENT =============
 
 // Save QR Beneficiary
