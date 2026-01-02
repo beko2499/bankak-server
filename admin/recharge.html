@@ -612,11 +612,16 @@
                 }
             });
         }
-        document.getElementById('agentName').textContent = localStorage.getItem('agentName') || 'UNKNOWN';
-        loadBalance();
-        loadHistory();
+
+        function checkLogin() {
+            if (!agentToken) {
+                window.location.href = '/admin/recharge-login.html';
+                return;
+            }
+            document.getElementById('agentName').textContent = localStorage.getItem('agentName') || 'UNKNOWN';
+            loadBalance();
+            loadHistory();
         }
-        checkLogin();
 
         function logout() {
             localStorage.clear();
